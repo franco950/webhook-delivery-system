@@ -1,0 +1,16 @@
+# binaries
+*.exe
+
+# raw run logs written by the delivery system (hundreds of MB per run)
+*performance.csv
+*refusals.csv
+*endpointsnap.csv
+*goroutinecount.csv
+run.log
+
+# CPU profiles from new runs (the ones in docs/runs are kept)
+*.pprof
+!docs/runs/**/*.pprof
+
+# large generated traces: regenerate with tracegen/tracegen.py
+tracegen/traces/**/events_300000_*.csv
