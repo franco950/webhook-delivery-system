@@ -47,6 +47,8 @@ The ERP connectors take 5 s per request and allow 2 at a time (0.4 deliveries/s 
 
 Full reports: refer to run 60 (normal day) and run 61 (busiest day)
 
+When a receiver is the bottleneck, the system runs it at its capacity without being told the limit. The pacer brings the ERP connectors down to their 2-request limit and holds them at 0.393 of a possible 0.40 deliveries/s (98%) through a 12-minute backlog, and the lane resize lets the fraud vendor reach 3,316 of its possible 3,333 deliveries/s (99.5%) while catching up. Receivers that aren't the bottleneck get exactly what arrives.
+
 requirements are mostly met, and will be even more mostly met once i add the database.
 the pending issues that i will handle are:
 
