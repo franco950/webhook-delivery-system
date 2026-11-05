@@ -2,6 +2,16 @@
 
 A Go service that delivers payment webhooks to 1,142 merchant endpoints, keeping events for the same resource in order. It was tested against a simulated receiver with six merchant types and replayed traffic: at 200 events/s every one of 33,522 deliveries arrived; at 3,000 events/s, 99.9% of 666,302 arrived with 0 ordering violations, using about 1.35 cores of an 8-core laptop.
 
+## what i focused on
+
+**ordering per resource.** Ordering violations (same resource, same endpoint): 0 of 12,224 pairs on a normal day, 0 of 243,227 pairs on the busiest day. lanes grow while it runs, and ordering had to be preserved, no delivery lost.
+
+**limits are discovered, not registered.** i had started with the customer registering their rate and concurrency limits for each endpoint, but i reasoned that this method was too reliant on the client to keep their endpoint at that pace. all endpoints are identical at the start, and find their way to a stable rate and concurrency. When a receiver is the bottleneck, the system runs it at its capacity without being told the limit: 0.393 of a possible 0.40 deliveries/s (98%) for the ERP connectors, and 3,316 of its possible 3,333 deliveries/s (99.5%) for the fraud vendor.
+
+**one slow endpoint doesn't hold back the rest.** The ERP connectors take 5 s per request and allow 2 at a time (0.4 deliveries/s each), so their backlog can't meet a 2 s target at either rate. They don't slow anyone else down.
+
+**tested against difficult receivers.** to test the system i created a test receiver to simulate the six customer profiles, with some outages and errors, and replayed 666,302 deliveries at 3,000 events/s.
+
 ## requirements
 
 - ordering of resources is prioritised
@@ -48,14 +58,6 @@ The ERP connectors take 5 s per request and allow 2 at a time (0.4 deliveries/s 
 Full reports: refer to run 60 (normal day) and run 61 (busiest day)
 
 When a receiver is the bottleneck, the system runs it at its capacity without being told the limit. The pacer brings the ERP connectors down to their 2-request limit and holds them at 0.393 of a possible 0.40 deliveries/s (98%) through a 12-minute backlog, and the lane resize lets the fraud vendor reach 3,316 of its possible 3,333 deliveries/s (99.5%) while catching up. Receivers that aren't the bottleneck get exactly what arrives.
-
-requirements are mostly met, and will be even more mostly met once i add the database.
-the pending issues that i will handle are:
-
-- what i will do with the parked deliveries
-- more granular error handling
-- more rigorous retrying over long time periods
-- handling abandoned endpoints
 
 ## now for the system description
 
@@ -216,7 +218,7 @@ and distributed the 1000+ endpoints to them as per their typical ratios.
 | **Total** | **1,142** | **666,302 deliveries from 300,000 events** |
 
 for event generation, the test events come from a seeded trace generator script that models the six merchant classes and event lifecycles and are written to a csv, each at a specified rate for tests. the generator script was written by claude. i read them and send to events channel in generator.go.
-the system also records some relevant metrics for analysis, an endpoint logger, something for goroutines, cpu and memory, and another for rejected events. they are logged to csv files. for each run, i task claude to generate a report based on the 4 logged csvs, and for the last runs, a cpu pprof, in docs/runs/ folder. all in all i have run about 59 test runs, suffice to say that the design at the beginning is different from what it is now.
+the system also records some relevant metrics for analysis, an endpoint logger, something for goroutines, cpu and memory, and another for rejected events. they are logged to csv files. for each run, i task claude to generate a report based on the 4 logged csvs, and for the last runs, a cpu pprof, in docs/runs/ folder. all in all i have run about 61 test runs, suffice to say that the design at the beginning is different from what it is now.
 
 the system performs great at the normal incoming rate:
 
@@ -278,6 +280,16 @@ Requires Go 1.27 and Python 3 (for the trace generator).
    curl -o cpu.pprof "http://localhost:6060/debug/pprof/profile?seconds=30"
    go tool pprof -top cpu.pprof
    ```
+
+## what is still missing
+
+requirements are mostly met, and will be even more mostly met once i add the database.
+the pending issues that i will handle are:
+
+- what i will do with the parked deliveries
+- more granular error handling
+- more rigorous retrying over long time periods
+- handling abandoned endpoints
 
 ## up next for me
 
