@@ -1,6 +1,6 @@
 # binaries
 *.exe
-
+.env
 # raw run logs written by the delivery system (hundreds of MB per run)
 *performance.csv
 *refusals.csv
